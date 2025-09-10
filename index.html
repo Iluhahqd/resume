@@ -409,6 +409,33 @@
             resize: vertical;
         }
 
+        /* Стили для статусных сообщений */
+        .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .sending {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
         /* Футер */
         .footer {
             background-color: #1a252f;
@@ -517,7 +544,6 @@
             <img src="me.JPG" alt="Фото профиля" class="hero-img">
             <h1 class="hero-title">Илья Невретдинов</h1>
             <h2 class="hero-subtitle">Python-разработчик</h2>
-<!--            <p class="hero-description">Создаю современные и адаптивные веб-приложения с использованием современных технологий. Стремлюсь к созданию чистого, эффективного и поддерживаемого кода.</p>-->
             <a href="#contact" class="btn">Связаться со мной</a>
         </div>
     </section>
@@ -687,6 +713,8 @@
                     </div>
                     <button type="submit" class="btn">Отправить сообщение</button>
                 </form>
+                <!-- Добавляем контейнер для статусных сообщений -->
+                <div id="formStatus" class="status-message"></div>
             </div>
         </div>
     </div>
@@ -748,11 +776,59 @@
 
         // Обработка формы
         const contactForm = document.getElementById('contactForm');
+        const formStatus = document.getElementById('formStatus');
 
-        contactForm.addEventListener('submit', function(e) {
+        contactForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Сообщение отправлено! (Это демо-версия, на самом деле сообщение никуда не отправляется)');
-            contactForm.reset();
+
+            // Получаем данные формы
+            const formData = new FormData(contactForm);
+
+            // Показываем статус отправки
+            formStatus.textContent = 'Отправка сообщения...';
+            formStatus.className = 'status-message sending';
+            formStatus.style.display = 'block';
+
+            // Делаем кнопку неактивной во время отправки
+            const submitButton = contactForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Отправка...';
+
+            try {
+                // Отправляем данные на Formspree
+                const response = await fetch(contactForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    // Успешная отправка
+                    formStatus.textContent = 'Сообщение успешно отправлено! Я свяжусь с вами в ближайшее время.';
+                    formStatus.className = 'status-message success';
+                    contactForm.reset();
+                } else {
+                    // Ошибка при отправке
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Произошла ошибка при отправке');
+                }
+            } catch (error) {
+                // Обработка ошибок
+                formStatus.textContent = 'Ошибка: ' + error.message;
+                formStatus.className = 'status-message error';
+                console.error('Ошибка отправки формы:', error);
+            } finally {
+                // Включаем кнопку обратно
+                submitButton.disabled = false;
+                submitButton.textContent = 'Отправить сообщение';
+
+                // Скрываем статусное сообщение через 5 секунд
+                setTimeout(() => {
+                    formStatus.style.display = 'none';
+                }, 5000);
+            }
         });
 
         // Инициализация при загрузке
